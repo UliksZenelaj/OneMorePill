@@ -95,7 +95,7 @@ export default function ProfilePage() {
 
         {/* project name */}
         <h1 className="text-xl font-bold text-black">
-          OneMoreColor
+          OneMorePill
         </h1>
 
         {/* user card */}

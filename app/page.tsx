@@ -34,7 +34,7 @@ export default function Home() {
     <main className="min-h-screen flex items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
         <h1 className="text-xl font-bold text-black text-center mb-8">
-          OneMoreColor
+          OneMorePill
         </h1>
 
         <div className="space-y-4">
