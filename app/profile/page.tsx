@@ -18,9 +18,12 @@ type Profile = {
 
 export default function ProfilePage() {
   const router = useRouter()
+
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [nationalities, setNationalities] = useState<string[]>([])
   const [userId, setUserId] = useState<string | null>(null)
+
+  const [beenWith, setBeenWith] = useState<string[]>([])
+  const [wishlist, setWishlist] = useState<string[]>([])
 
   // load session + data
   useEffect(() => {
@@ -44,36 +47,59 @@ export default function ProfilePage() {
       if (!profileData) return
       setProfile(profileData)
 
-      // nationalities
-      const { data: natData } = await supabase
+      // been with
+      const { data: beenData } = await supabase
         .from('user_nationalities')
         .select('country_code')
         .eq('user_id', uid)
 
-      setNationalities(natData?.map((n) => n.country_code) ?? [])
+      setBeenWith(beenData?.map((n) => n.country_code) ?? [])
+
+      // wishlist
+      const { data: wishData } = await supabase
+        .from('user_wishlist_nationalities')
+        .select('country_code')
+        .eq('user_id', uid)
+
+      setWishlist(wishData?.map((n) => n.country_code) ?? [])
     }
 
     load()
   }, [router])
 
-  async function addNationality(code: string) {
-    if (!userId) return
-    if (nationalities.includes(code)) return
+  function countryName(code: string) {
+    return countries.find((c) => c.cca2 === code)?.name.common
+  }
 
-    // optimistic UI
-    setNationalities((prev) => [...prev, code])
+  async function addBeenWith(code: string) {
+    if (!userId) return
+    if (beenWith.includes(code)) return
+
+    setBeenWith((prev) => [...prev, code])
 
     const { error } = await supabase
       .from('user_nationalities')
-      .insert({
-        user_id: userId,
-        country_code: code,
-      })
+      .insert({ user_id: userId, country_code: code })
 
     if (error) {
       console.error(error)
-      // rollback UI if insert fails
-      setNationalities((prev) => prev.filter((c) => c !== code))
+      setBeenWith((prev) => prev.filter((c) => c !== code))
+    }
+  }
+
+  async function addWishlist(code: string) {
+    if (!userId) return
+    if (wishlist.includes(code)) return
+
+    setWishlist((prev) => [...prev, code])
+
+    const { error } = await supabase
+      .from('user_wishlist_nationalities')
+      .insert({ user_id: userId, country_code: code })
+
+    if (error) {
+      console.error(error)
+      setWishlist((prev) => prev.filter((c) => c !== code))
     }
   }
 
@@ -93,7 +119,6 @@ export default function ProfilePage() {
           Logout
         </button>
 
-        {/* project name */}
         <h1 className="text-xl font-bold text-black">
           OneMorePill
         </h1>
@@ -116,28 +141,53 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* nationalities */}
+        {/* BEEN WITH */}
         <div>
           <h2 className="font-semibold text-black mb-3">
             Nationalities I’ve been with
           </h2>
 
           <div className="flex flex-wrap gap-2">
-            {nationalities.map((code) => (
+            {beenWith.map((code) => (
               <span
                 key={code}
                 className="flex items-center gap-1.5 border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-black"
               >
                 <ReactCountryFlag svg countryCode={code} />
-                {countries.find((c) => c.cca2 === code)?.name.common}
+                {countryName(code)}
               </span>
             ))}
 
-            {/* add one more */}
             <div className="border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-gray-600">
               <NationalityPicker
                 placeholder="add one more"
-                onSelect={(c) => addNationality(c.cca2)}
+                onSelect={(c) => addBeenWith(c.cca2)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* WISHLIST */}
+        <div>
+          <h2 className="font-semibold text-black mb-3">
+            I’d like to next
+          </h2>
+
+          <div className="flex flex-wrap gap-2">
+            {wishlist.map((code) => (
+              <span
+                key={code}
+                className="flex items-center gap-1.5 border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-black"
+              >
+                <ReactCountryFlag svg countryCode={code} />
+                {countryName(code)}
+              </span>
+            ))}
+
+            <div className="border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-gray-600">
+              <NationalityPicker
+                placeholder="add one more"
+                onSelect={(c) => addWishlist(c.cca2)}
               />
             </div>
           </div>
