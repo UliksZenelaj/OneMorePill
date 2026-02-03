@@ -177,14 +177,14 @@ export default function ProfilePage() {
             {wishlist.map((code) => (
               <span
                 key={code}
-                className="flex items-center gap-1.5 border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-black"
+                className="flex items-center gap-1.5 border border-dashed border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-black"
               >
                 <ReactCountryFlag svg countryCode={code} />
                 {countryName(code)}
               </span>
             ))}
 
-            <div className="border border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-gray-600">
+            <div className="border border-dashed border-gray-400 rounded-full px-2.5 py-0.5 text-sm text-gray-600">
               <NationalityPicker
                 placeholder="add one more"
                 onSelect={(c) => addWishlist(c.cca2)}
