@@ -33,9 +33,15 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-xl font-bold text-black text-center mb-8">
-          OneMorePill
-        </h1>
+        {/* Header centrato */}
+        <div className="text-center mb-8">
+          <h1 className="text-xl font-bold text-black">
+            OneMorePill
+          </h1>
+          <p className="text-sm text-gray-600">
+            Track your international romances
+          </p>
+        </div>
 
         <div className="space-y-4">
           <Input

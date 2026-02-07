@@ -1,96 +1,91 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import ReactCountryFlag from 'react-country-flag'
+import { useState } from 'react'
 import countries from 'world-countries'
+import ReactCountryFlag from 'react-country-flag'
 
-type Country = {
-  cca2: string
-  name: { common: string }
+interface NationalityPickerProps {
+  onSelect: (country: any) => void
+  placeholder?: string
+  className?: string
 }
 
-type Props = {
-  placeholder: string
-  onSelect?: (country: Country) => void
-}
-
-export default function NationalityPicker({ placeholder, onSelect }: Props) {
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Country | null>(null)
+export default function NationalityPicker({ onSelect, placeholder = "Add nationality", className = "" }: NationalityPickerProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
 
-  const isControlled = typeof onSelect === 'function'
-
-  // chiude cliccando fuori
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false)
-        setSearch('')
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  const filteredCountries = countries.filter((country) =>
-    country.name.common.toLowerCase().includes(search.toLowerCase())
+  // Ordiniamo i paesi per nome comune
+  const sortedCountries = [...countries].sort((a, b) => 
+    a.name.common.localeCompare(b.name.common)
   )
 
-  function handleSelect(country: Country) {
-    if (!isControlled) {
-      setSelected(country)
-    }
-
-    onSelect?.(country)
-    setOpen(false)
-    setSearch('')
-  }
+  const filteredCountries = sortedCountries.filter(c =>
+    c.name.common.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
-    <div ref={ref} className="relative">
-      {/* trigger */}
-      <div onClick={() => setOpen(true)} className="cursor-pointer">
-        {!isControlled && selected ? (
-          <span className="flex items-center gap-1.5 text-black">
-            <ReactCountryFlag svg countryCode={selected.cca2} />
-            {selected.name.common}
-          </span>
-        ) : (
-          <span className="text-gray-500">{placeholder}</span>
-        )}
-      </div>
+    <div className={`relative inline-block ${className}`}>
+      {/* Trigger: il testo cliccabile che vedi nella pillola tratteggiata */}
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          setIsOpen(!isOpen)
+        }}
+        className="focus:outline-none transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+      >
+        {placeholder}
+      </button>
 
-      {/* dropdown */}
-      {open && (
-        <div className="absolute left-0 z-20 mt-2 w-64 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow">
-          {/* search */}
-          <div className="p-2 border-b">
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute left-0 z-50 mt-4 w-72 bg-white border border-gray-100 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-4 border-b border-gray-50 bg-gray-50/50">
             <input
+              autoFocus
               type="text"
-              placeholder="Search..."
+              placeholder="Search country..."
+              className="w-full px-4 py-2 text-sm bg-white border border-gray-100 rounded-xl outline-none focus:ring-2 ring-black/5 text-black font-medium"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-1 text-sm text-black placeholder-gray-500 focus:outline-none"
             />
           </div>
-
-          {/* list */}
-          {filteredCountries.map((country) => (
-            <div
-              key={country.cca2}
-              onClick={() => handleSelect(country as Country)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-black hover:bg-gray-100 cursor-pointer"
-            >
-              <ReactCountryFlag svg countryCode={country.cca2} />
-              {country.name.common}
-            </div>
-          ))}
+          
+          <div className="max-h-64 overflow-y-auto scrollbar-hide">
+            {filteredCountries.length > 0 ? (
+              filteredCountries.map((c) => (
+                <button
+                  key={c.cca2}
+                  type="button"
+                  onClick={() => {
+                    onSelect(c)
+                    setIsOpen(false)
+                    setSearch('')
+                  }}
+                  className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
+                >
+                  <ReactCountryFlag 
+                    svg 
+                    countryCode={c.cca2} 
+                    style={{ fontSize: '1.4em', borderRadius: '2px' }} 
+                  />
+                  <span className="text-sm font-bold text-black">{c.name.common}</span>
+                </button>
+              ))
+            ) : (
+              <div className="p-5 text-center text-xs text-gray-400 font-bold uppercase tracking-widest">
+                No country found
+              </div>
+            )}
+          </div>
         </div>
+      )}
+      
+      {/* Overlay invisibile per chiudere cliccando fuori */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-transparent" 
+          onClick={() => setIsOpen(false)}
+        />
       )}
     </div>
   )
