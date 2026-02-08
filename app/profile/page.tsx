@@ -7,6 +7,20 @@ import NationalityPicker from '@/components/ui/NationalityPicker'
 import { supabase } from '@/lib/supabaseClient'
 import countries from 'world-countries'
 import confetti from 'canvas-confetti'
+// Importiamo le icone minimali
+import { 
+  MapPin, 
+  Instagram, 
+  LogOut, 
+  Trash2, 
+  User, 
+  Ruler, 
+  Compass, 
+  Edit3, 
+  Database as DbIcon, 
+  Radar,
+  X 
+} from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -16,6 +30,7 @@ export default function ProfilePage() {
   const [beenWith, setBeenWith] = useState<string[]>([])
   const [wishlist, setWishlist] = useState<string[]>([])
   const [isEditing, setIsEditing] = useState(false)
+  const [pillToDelete, setPillToDelete] = useState<{code: string, type: 'database' | 'radar'} | null>(null)
   const [uploading, setUploading] = useState<{slot: 1 | 2, state: boolean}>({slot: 1, state: false})
   
   const [editForm, setEditForm] = useState({
@@ -52,35 +67,30 @@ export default function ProfilePage() {
     load()
   }, [router])
 
-  // --- ELIMINAZIONE ACCOUNT ---
-  const handleDeleteAccount = async () => {
-    const confirmDelete = confirm(
-      "ATTENZIONE: Questa azione è irreversibile. Elimineremo definitivamente il tuo profilo e tutte le tue liste. Procedere?"
-    )
-
-    if (confirmDelete) {
-      try {
-        if (!userId) return
-
-        // 1. Eliminiamo i dati dalle tabelle correlate
-        await supabase.from('user_nationalities').delete().eq('user_id', userId)
-        await supabase.from('user_wishlist_nationalities').delete().eq('user_id', userId)
-        
-        // 2. Eliminiamo il profilo
-        const { error } = await supabase.from('profiles').delete().eq('id', userId)
-        if (error) throw error
-
-        // 3. Logout e ritorno alla home
-        await supabase.auth.signOut()
-        router.push('/')
-      } catch (e) {
-        console.error(e)
-        alert("Errore durante l'eliminazione dell'account.")
-      }
+  async function confirmDeletePill() {
+    if (!userId || !pillToDelete) return
+    const table = pillToDelete.type === 'database' ? 'user_nationalities' : 'user_wishlist_nationalities'
+    const { error } = await supabase.from(table).delete().eq('user_id', userId).eq('country_code', pillToDelete.code)
+    if (!error) {
+      if (pillToDelete.type === 'database') setBeenWith(prev => prev.filter(c => c !== pillToDelete.code))
+      else setWishlist(prev => prev.filter(c => c !== pillToDelete.code))
+      setPillToDelete(null)
     }
   }
 
-  // --- ALTRE FUNZIONI ---
+  const handleDeleteAccount = async () => {
+    if (confirm("ATTENZIONE: Questa azione è irreversibile. Procedere?")) {
+      try {
+        if (!userId) return
+        await supabase.from('user_nationalities').delete().eq('user_id', userId)
+        await supabase.from('user_wishlist_nationalities').delete().eq('user_id', userId)
+        await supabase.from('profiles').delete().eq('id', userId)
+        await supabase.auth.signOut()
+        router.push('/')
+      } catch (e) { alert("Errore durante l'eliminazione.") }
+    }
+  }
+
   async function addBeenWith(code: string) {
     if (!userId || beenWith.includes(code)) return
     const { error } = await supabase.from('user_nationalities').insert({ user_id: userId, country_code: code })
@@ -93,17 +103,14 @@ export default function ProfilePage() {
   async function addWishlist(code: string) {
     if (!userId || wishlist.includes(code)) return
     const { error } = await supabase.from('user_wishlist_nationalities').insert({ user_id: userId, country_code: code })
-    if (!error) { setWishlist((prev) => [...prev, code]) }
+    if (!error) setWishlist((prev) => [...prev, code])
   }
 
   const handleUpdate = async () => {
     const { error } = await supabase.from('profiles').update({
-      city: editForm.city,
-      residence_country: editForm.residence_country,
-      social_handle: editForm.social_handle,
-      height: parseInt(editForm.height) || null
+      city: editForm.city, residence_country: editForm.residence_country,
+      social_handle: editForm.social_handle, height: parseInt(editForm.height) || null
     }).eq('id', userId)
-
     if (!error) {
       setProfile({ ...profile, ...editForm, height: parseInt(editForm.height) })
       setIsEditing(false)
@@ -130,43 +137,54 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-white text-black pb-32 font-['DM_Sans']">
       <div className="max-w-md mx-auto px-6 pt-10">
         
-        <h1 className="text-3xl font-black mb-10 tracking-tight text-center sm:text-left">OneMorePill</h1>
+        <h1 className="text-3xl font-black mb-10 tracking-tighter italic text-center sm:text-left">OneMorePill</h1>
 
+        {/* TABS CON ICONE MINIMALI */}
         <div className="flex justify-center gap-12 border-b border-gray-100 mb-8">
-          <button onClick={() => setActiveTab('lists')} className={`pb-4 text-base font-bold transition-all ${activeTab === 'lists' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}>Lists</button>
-          <button onClick={() => setActiveTab('profile')} className={`pb-4 text-base font-bold transition-all ${activeTab === 'profile' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}>My Profile</button>
+          <button onClick={() => setActiveTab('lists')} className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'lists' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}>
+            <DbIcon size={16} strokeWidth={activeTab === 'lists' ? 2.5 : 1.5} /> Lists
+          </button>
+          <button onClick={() => setActiveTab('profile')} className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'profile' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}>
+            <User size={16} strokeWidth={activeTab === 'profile' ? 2.5 : 1.5} /> My Profile
+          </button>
         </div>
 
         {activeTab === 'lists' ? (
           <div className="space-y-12 animate-in fade-in duration-500">
             <section>
-              <h2 className="text-xl font-bold mb-1">Database</h2>
-              <p className="text-sm text-gray-500 mb-6">Nationalities i've been with</p>
+              <div className="flex items-center gap-2 mb-1">
+                <DbIcon size={18} className="text-gray-400" />
+                <h2 className="text-xl font-bold italic tracking-tight">Database</h2>
+              </div>
+              <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">Nationalities i've been with</p>
               <div className="flex flex-wrap gap-3">
                 {beenWith.map(code => (
-                  <div key={code} className="flex items-center gap-2 border border-gray-200 rounded-full pl-3 pr-5 py-2.5 font-bold shadow-sm animate-in zoom-in-50 duration-300">
+                  <button key={code} onClick={() => setPillToDelete({ code, type: 'database' })} className="flex items-center gap-2 border border-gray-100 rounded-full pl-3 pr-5 py-2.5 font-bold shadow-sm bg-white active:scale-95 transition-all">
                     <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
-                    <span>{countryName(code)}</span>
-                  </div>
+                    <span className="text-sm">{countryName(code)}</span>
+                  </button>
                 ))}
-                <div className="border border-dashed border-gray-300 rounded-full px-5 py-2.5 text-gray-400 font-bold">
-                   <NationalityPicker placeholder="add one more" onSelect={(c) => addBeenWith(c.cca2)} />
+                <div className="border border-dashed border-gray-200 rounded-full px-5 py-2.5 text-gray-400 font-bold text-sm">
+                   <NationalityPicker placeholder="+ add one" onSelect={(c) => addBeenWith(c.cca2)} />
                 </div>
               </div>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-1">Radar</h2>
-              <p className="text-sm text-gray-500 mb-6">Nationalities i'd like to date</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Radar size={18} className="text-gray-400" />
+                <h2 className="text-xl font-bold italic tracking-tight">Radar</h2>
+              </div>
+              <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">Nationalities i'd like to date</p>
               <div className="flex flex-wrap gap-3">
                 {wishlist.map(code => (
-                  <div key={code} className="flex items-center gap-2 border border-dashed border-gray-300 rounded-full pl-3 pr-5 py-2.5 font-bold text-gray-700 bg-gray-50/30">
+                  <button key={code} onClick={() => setPillToDelete({ code, type: 'radar' })} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-full pl-3 pr-5 py-2.5 font-bold text-gray-700 bg-gray-50/30 active:scale-95 transition-all">
                     <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
-                    <span>{countryName(code)}</span>
-                  </div>
+                    <span className="text-sm">{countryName(code)}</span>
+                  </button>
                 ))}
-                <div className="border border-dashed border-gray-300 rounded-full px-5 py-2.5 text-gray-400 font-bold">
-                   <NationalityPicker placeholder="add one more" onSelect={(c) => addWishlist(c.cca2)} />
+                <div className="border border-dashed border-gray-200 rounded-full px-5 py-2.5 text-gray-400 font-bold text-sm">
+                   <NationalityPicker placeholder="+ add one" onSelect={(c) => addWishlist(c.cca2)} />
                 </div>
               </div>
             </section>
@@ -174,77 +192,114 @@ export default function ProfilePage() {
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
             {isEditing ? (
-              <div className="space-y-4 border border-gray-200 rounded-[2rem] p-6 animate-in slide-in-from-top-4">
-                <input placeholder="City" className="w-full border-b border-gray-200 py-2 font-bold outline-none focus:border-black" value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} />
-                <div className="flex items-center gap-2 py-2 border-b border-gray-200 font-bold">
+              <div className="space-y-4 border border-gray-100 rounded-[2rem] p-8 bg-gray-50/30">
+                <input placeholder="City" className="w-full bg-transparent border-b border-gray-200 py-3 font-bold outline-none focus:border-black transition-all" value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} />
+                <div className="flex items-center gap-2 py-3 border-b border-gray-200 font-bold">
                     <NationalityPicker placeholder="Select residence" onSelect={(c) => setEditForm({...editForm, residence_country: c.cca2})} />
                     {editForm.residence_country && <ReactCountryFlag svg countryCode={editForm.residence_country} />}
                 </div>
-                <input placeholder="Height (cm)" type="number" className="w-full border-b border-gray-200 py-2 font-bold outline-none focus:border-black" value={editForm.height} onChange={e => setEditForm({...editForm, height: e.target.value})} />
-                <input placeholder="Instagram @handle" className="w-full border-b border-gray-200 py-2 font-bold outline-none focus:border-black" value={editForm.social_handle} onChange={e => setEditForm({...editForm, social_handle: e.target.value})} />
-                <div className="flex gap-4 pt-2">
-                    <button onClick={handleUpdate} className="flex-1 bg-black text-white py-3 rounded-xl font-bold">Save</button>
-                    <button onClick={() => setIsEditing(false)} className="flex-1 bg-gray-100 text-black py-3 rounded-xl font-bold">Cancel</button>
+                <input placeholder="Height (cm)" type="number" className="w-full bg-transparent border-b border-gray-200 py-3 font-bold outline-none focus:border-black transition-all" value={editForm.height} onChange={e => setEditForm({...editForm, height: e.target.value})} />
+                <input placeholder="Instagram @handle" className="w-full bg-transparent border-b border-gray-200 py-3 font-bold outline-none focus:border-black transition-all" value={editForm.social_handle} onChange={e => setEditForm({...editForm, social_handle: e.target.value})} />
+                <div className="flex gap-4 pt-4">
+                    <button onClick={handleUpdate} className="flex-1 bg-black text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]">Save</button>
+                    <button onClick={() => setIsEditing(false)} className="flex-1 bg-white border border-gray-200 text-black py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]">Cancel</button>
                 </div>
               </div>
             ) : (
               <>
-                <div className="border border-gray-200 rounded-[2rem] p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-2xl font-bold">{profile.username}</h3>
-                    <div className="flex gap-1">
-                      <ReactCountryFlag svg countryCode={profile.nationality_1} />
-                      {profile.nationality_2 && <ReactCountryFlag svg countryCode={profile.nationality_2} />}
+                <div className="border border-gray-100 rounded-[2.5rem] p-8 space-y-4 bg-white shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-2xl font-black italic tracking-tighter">{profile.username}</h3>
+                      <div className="flex gap-1.5">
+                        <ReactCountryFlag svg countryCode={profile.nationality_1} className="rounded-sm" />
+                        {profile.nationality_2 && <ReactCountryFlag svg countryCode={profile.nationality_2} className="rounded-sm" />}
+                      </div>
                     </div>
                   </div>
-                  <p className="font-bold text-gray-700 flex items-center gap-2 italic text-sm">
-                    📍 {profile.city || 'Set City'}, {countryName(profile.residence_country || 'IT')}
+                  <p className="font-bold text-gray-400 flex items-center gap-2 italic text-sm">
+                    <MapPin size={14} strokeWidth={2} />
+                    {profile.city || 'Set City'}, {countryName(profile.residence_country || 'IT')}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-3 border border-gray-200 rounded-2xl overflow-hidden divide-x divide-gray-200">
-                  <div className="py-4 text-center font-bold text-sm">{profile.gender}</div>
-                  <div className="py-4 text-center font-bold text-[10px] uppercase tracking-tighter flex items-center justify-center">{profile.orientation}</div>
-                  <div className="py-4 text-center font-bold text-sm">{profile.height || '—'} cm</div>
+                <div className="grid grid-cols-3 border border-gray-100 rounded-[1.5rem] overflow-hidden divide-x divide-gray-100 bg-white">
+                  <div className="py-5 flex flex-col items-center gap-1.5 text-gray-400">
+                    <User size={16} strokeWidth={1.5} />
+                    <span className="text-[10px] font-black uppercase text-black">{profile.gender}</span>
+                  </div>
+                  <div className="py-5 flex flex-col items-center gap-1.5 text-gray-400">
+                    <Compass size={16} strokeWidth={1.5} />
+                    <span className="text-[10px] font-black uppercase text-black">{profile.orientation}</span>
+                  </div>
+                  <div className="py-5 flex flex-col items-center gap-1.5 text-gray-400">
+                    <Ruler size={16} strokeWidth={1.5} />
+                    <span className="text-[10px] font-black uppercase text-black">{profile.height || '—'} cm</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   {[1, 2].map((slot) => (
-                    <div key={slot} className="relative aspect-[2/3] bg-gray-100 rounded-[2rem] overflow-hidden border border-gray-100 group">
+                    <div key={slot} className="relative aspect-[4/5] bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
                       {(slot === 1 ? profile.avatar_url : profile.avatar_url_2) && (
                         <img src={slot === 1 ? profile.avatar_url : profile.avatar_url_2} className="w-full h-full object-cover" />
                       )}
                       <label className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="bg-white text-black text-[10px] font-black px-4 py-2 rounded-full shadow-lg">UPLOAD</span>
+                        <span className="bg-white text-black text-[10px] font-black px-5 py-2.5 rounded-full shadow-xl">UPLOAD</span>
                         <input type="file" className="hidden" onChange={(e) => uploadPhoto(e, slot as 1 | 2)} />
                       </label>
                     </div>
                   ))}
                 </div>
 
-                <div className="border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
-                  <span className="text-xl">📸</span>
-                  <span className="font-bold flex-1">{profile.social_handle || '@instagram'}</span>
+                <div className="border border-gray-100 rounded-2xl p-5 flex items-center gap-4 bg-white shadow-sm">
+                  <Instagram size={18} strokeWidth={1.5} className="text-gray-400" />
+                  <span className="font-bold flex-1 text-sm">{profile.social_handle || '@instagram'}</span>
                 </div>
 
-                <div className="space-y-3 pt-4">
-                    <button onClick={() => setIsEditing(true)} className="w-full py-4 border border-gray-200 rounded-2xl font-bold hover:border-black transition-all">Edit profile</button>
+                <div className="space-y-3 pt-6">
+                    <button onClick={() => setIsEditing(true)} className="w-full py-4 flex items-center justify-center gap-2 border border-gray-200 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:border-black transition-all">
+                        <Edit3 size={14} /> Edit profile
+                    </button>
                     
-                    <button onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} className="w-full py-4 text-gray-400 font-bold text-sm uppercase tracking-widest hover:text-black transition-colors">Logout</button>
+                    <button onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} className="w-full py-4 flex items-center justify-center gap-2 text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] hover:text-black transition-colors">
+                        <LogOut size={14} /> Logout
+                    </button>
                     
-                    {/* DANGER ZONE: ELIMINA ACCOUNT */}
-                    <div className="pt-8 mt-4 border-t border-gray-100">
-                        <p className="text-[9px] font-black text-center text-red-300 uppercase tracking-widest mb-4">Danger Zone</p>
-                        <button 
-                            onClick={handleDeleteAccount}
-                            className="w-full py-4 border border-red-100 text-red-400 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-50 transition-all"
-                        >
-                            Delete Account Forever
+                    <div className="pt-10 mt-6 border-t border-gray-50">
+                        <p className="text-[9px] font-black text-center text-red-200 uppercase tracking-[0.3em] mb-4">Danger Zone</p>
+                        <button onClick={handleDeleteAccount} className="w-full py-4 flex items-center justify-center gap-2 border border-red-50 text-red-300 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all">
+                            <Trash2 size={14} /> Delete Account Forever
                         </button>
                     </div>
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* MODAL CANCELLAZIONE PILLOLA */}
+        {pillToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/10 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-xs rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 text-center border border-gray-50">
+              <div className="mb-6 flex justify-center">
+                <ReactCountryFlag svg countryCode={pillToDelete.code} style={{fontSize: '4em'}} className="rounded-md shadow-sm" />
+              </div>
+              <h3 className="text-xl font-black uppercase italic tracking-tighter mb-2">Remove Pill?</h3>
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-10 leading-relaxed px-4">
+                Are you sure you want to remove <br/>
+                <span className="text-black">{countryName(pillToDelete.code)}</span>?
+              </p>
+              
+              <div className="space-y-3">
+                <button onClick={confirmDeletePill} className="w-full bg-red-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-red-100 active:scale-95 transition-all">
+                   Remove it
+                </button>
+                <button onClick={() => setPillToDelete(null)} className="w-full bg-gray-50 text-gray-400 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">
+                   Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

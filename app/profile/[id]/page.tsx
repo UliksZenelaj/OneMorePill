@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import ReactCountryFlag from 'react-country-flag'
 import { supabase } from '@/lib/supabaseClient'
 import countries from 'world-countries'
+import { MapPin, Instagram, ChevronLeft } from 'lucide-react'
 
 export default function PublicProfilePage() {
   const { id } = useParams()
@@ -66,9 +67,10 @@ export default function PublicProfilePage() {
                 <h1 className="text-4xl font-black italic uppercase tracking-tighter leading-none mb-2">
                   {profile.username}
                 </h1>
-                <p className="text-gray-400 font-bold italic text-sm">
-                  📍 {profile.city || 'World'}
-                </p>
+                <p className="font-bold text-gray-400 flex items-center gap-2 italic text-sm">
+  <MapPin size={14} strokeWidth={2} />
+  {profile.city || 'Set City'}, {countryName(profile.residence_country || 'IT')}
+</p>
               </div>
               <div className="flex gap-1 pt-1">
                 <ReactCountryFlag svg countryCode={profile.nationality_1} style={{fontSize: '1.4em'}} />

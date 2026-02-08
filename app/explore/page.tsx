@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import countries from 'world-countries'
 import NationalityPicker from '@/components/ui/NationalityPicker'
 import Link from 'next/link'
+import { MapPin, Search, SlidersHorizontal } from 'lucide-react'
 
 export default function ExplorePage() {
   const [results, setResults] = useState<any[]>([])
@@ -192,9 +193,10 @@ export default function ExplorePage() {
                       <span className="text-sm font-black text-white uppercase tracking-tighter truncate">{p.username}</span>
                       <ReactCountryFlag svg countryCode={p.nationality_1} />
                     </div>
-                    <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest mb-1">
-                      📍 {p.city || 'World'}
-                    </p>
+                    <p className="text-[9px] text-gray-300 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+  <MapPin size={10} strokeWidth={2} />
+  {p.city || 'World'}
+</p>
                     <p className="text-[9px] text-white/60 font-bold uppercase mb-4">
                       {p.height ? `${p.height} cm` : '—'}
                     </p>
