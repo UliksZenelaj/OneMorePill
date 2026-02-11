@@ -13,8 +13,8 @@ export const metadata = {
   description: 'Track your international romances',
   manifest: '/manifest.json',
   icons: {
-    apple: '/icon-512.png',
-  },
+      apple: "/icon-512.png",
+    },
 }
 
 export default function RootLayout({
