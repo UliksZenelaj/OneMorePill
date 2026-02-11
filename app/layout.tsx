@@ -11,6 +11,10 @@ const dmSans = DM_Sans({
 export const metadata = {
   title: 'OneMorePill',
   description: 'Track your international romances',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/icon-512.png',
+  },
 }
 
 export default function RootLayout({
