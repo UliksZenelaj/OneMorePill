@@ -18,7 +18,9 @@ import {
   Edit3, 
   Database as DbIcon, 
   Radar,
-  Quote
+  Quote,
+  EyeOff,
+  Globe
 } from 'lucide-react'
 
 export default function ProfilePage() {
@@ -37,7 +39,7 @@ export default function ProfilePage() {
     residence_country: '',
     social_handle: '',
     height: '',
-    introduction: '' // <-- Nuovo campo
+    introduction: ''
   })
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function ProfilePage() {
           residence_country: profileData.residence_country || '',
           social_handle: profileData.social_handle || '',
           height: profileData.height?.toString() || '',
-          introduction: profileData.introduction || '' // <-- Caricamento
+          introduction: profileData.introduction || ''
         })
       }
 
@@ -92,24 +94,22 @@ export default function ProfilePage() {
     }
   }
 
-  // --- FUNZIONI PER AGGIUNGERE PILLOLE (Mancanti nello screen) ---
-async function addBeenWith(code: string) {
-  if (!userId || beenWith.includes(code)) return
-  const { error } = await supabase.from('user_nationalities').insert({ user_id: userId, country_code: code })
-  if (!error) {
-    setBeenWith((prev) => [...prev, code])
-    // Se vuoi i coriandoli, lasciali pure!
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#000000', '#ffffff', '#FFD700'] })
+  async function addBeenWith(code: string) {
+    if (!userId || beenWith.includes(code)) return
+    const { error } = await supabase.from('user_nationalities').insert({ user_id: userId, country_code: code })
+    if (!error) {
+      setBeenWith((prev) => [...prev, code])
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#000000', '#ffffff', '#FFD700'] })
+    }
   }
-}
 
-async function addWishlist(code: string) {
-  if (!userId || wishlist.includes(code)) return
-  const { error } = await supabase.from('user_wishlist_nationalities').insert({ user_id: userId, country_code: code })
-  if (!error) { 
-    setWishlist((prev) => [...prev, code]) 
+  async function addWishlist(code: string) {
+    if (!userId || wishlist.includes(code)) return
+    const { error } = await supabase.from('user_wishlist_nationalities').insert({ user_id: userId, country_code: code })
+    if (!error) { 
+      setWishlist((prev) => [...prev, code]) 
+    }
   }
-}
 
   const handleUpdate = async () => {
     const { error } = await supabase.from('profiles').update({
@@ -117,7 +117,7 @@ async function addWishlist(code: string) {
       residence_country: editForm.residence_country,
       social_handle: editForm.social_handle, 
       height: parseInt(editForm.height) || null,
-      introduction: editForm.introduction // <-- Salvataggio
+      introduction: editForm.introduction
     }).eq('id', userId)
 
     if (!error) {
@@ -126,7 +126,6 @@ async function addWishlist(code: string) {
     }
   }
 
-  // ... (uploadPhoto e countryName rimangono uguali)
   async function uploadPhoto(event: any, slot: 1 | 2) {
     try {
       setUploading({ slot, state: true })
@@ -151,56 +150,81 @@ async function addWishlist(code: string) {
 
         <div className="flex justify-center gap-12 border-b border-gray-100 mb-8">
           <button 
-  onClick={() => setActiveTab('pills')} 
-  className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'pills' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}
->
-  <DbIcon size={16} strokeWidth={activeTab === 'pills' ? 2.5 : 1.5} /> Pills
-</button>
+            onClick={() => setActiveTab('pills')} 
+            className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'pills' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}
+          >
+            <DbIcon size={16} strokeWidth={activeTab === 'pills' ? 2.5 : 1.5} /> Pills
+          </button>
           <button onClick={() => setActiveTab('profile')} className={`pb-4 flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'profile' ? 'border-b-2 border-black text-black' : 'text-gray-300'}`}>
             <User size={16} strokeWidth={activeTab === 'profile' ? 2.5 : 1.5} /> My Profile
           </button>
         </div>
 
         {activeTab === 'pills' ? (
-  <div className="space-y-12 animate-in fade-in duration-500">
-            {/* ... Sezione Database e Radar (invariate) ... */}
-            <section>
-              <div className="flex items-center gap-2 mb-1">
-                <DbIcon size={18} className="text-gray-400" />
-                <h2 className="text-xl font-bold italic tracking-tight">Database</h2>
-              </div>
-              <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">Nationalities i've been with</p>
-              <div className="flex flex-wrap gap-3">
-                {beenWith.map(code => (
-                  <button key={code} onClick={() => setPillToDelete({ code, type: 'database' })} className="flex items-center gap-2 border border-gray-100 rounded-full pl-3 pr-5 py-2.5 font-bold shadow-sm bg-white active:scale-95 transition-all">
-                    <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
-                    <span className="text-sm">{countryName(code)}</span>
-                  </button>
-                ))}
-                <div className="border border-dashed border-gray-200 rounded-full px-5 py-2.5 text-gray-400 font-bold text-sm">
-                   <NationalityPicker placeholder="+ add one" onSelect={(c) => addBeenWith(c.cca2)} />
-                </div>
-              </div>
-            </section>
+          <div className="space-y-12 animate-in fade-in duration-500">
+            
+            {/* RADAR - LOOK PULITO E TRATTEGGIATO */}
+<section>
+  <div className="flex items-center justify-between mb-1">
+    <div className="flex items-center gap-2">
+      <Radar size={18} className="text-black" />
+      <h2 className="text-xl font-bold italic tracking-tight">Radar</h2>
+    </div>
+    <div className="flex items-center gap-1 bg-black text-white px-2 py-0.5 rounded-full">
+      <Globe size={10} />
+      <span className="text-[8px] font-black uppercase tracking-tighter">Public</span>
+    </div>
+  </div>
+  <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">What I'm looking for</p>
+  
+  <div className="flex flex-wrap gap-3">
+    {wishlist.map(code => (
+      <button 
+        key={code} 
+        onClick={() => setPillToDelete({ code, type: 'radar' })} 
+        className="flex items-center gap-2 border-2 border-dashed border-gray-200 rounded-full pl-3 pr-5 py-2.5 font-bold text-gray-700 bg-white hover:border-black hover:text-black transition-all active:scale-95 shadow-sm"
+      >
+        <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
+        <span className="text-sm">{countryName(code)}</span>
+      </button>
+    ))}
+    <div className="border-2 border-dashed border-gray-100 rounded-full px-5 py-2.5 text-gray-300 font-bold text-sm hover:border-gray-300 transition-colors">
+       <NationalityPicker placeholder="+ add focus" onSelect={(c) => addWishlist(c.cca2)} />
+    </div>
+  </div>
+</section>
 
-            <section>
-              <div className="flex items-center gap-2 mb-1">
-                <Radar size={18} className="text-gray-400" />
-                <h2 className="text-xl font-bold italic tracking-tight">Radar</h2>
-              </div>
-              <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">Nationalities i'd like to date</p>
-              <div className="flex flex-wrap gap-3">
-                {wishlist.map(code => (
-                  <button key={code} onClick={() => setPillToDelete({ code, type: 'radar' })} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-full pl-3 pr-5 py-2.5 font-bold text-gray-700 bg-gray-50/30 active:scale-95 transition-all">
-                    <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
-                    <span className="text-sm">{countryName(code)}</span>
-                  </button>
-                ))}
-                <div className="border border-dashed border-gray-200 rounded-full px-5 py-2.5 text-gray-400 font-bold text-sm">
-                   <NationalityPicker placeholder="+ add one" onSelect={(c) => addWishlist(c.cca2)} />
-                </div>
-              </div>
-            </section>
+           {/* DATABASE - VERSIONE RIPARATA E SOLIDA */}
+<section className="pt-8 border-t border-gray-100">
+  <div className="flex items-center justify-between mb-1">
+    <div className="flex items-center gap-2">
+      <DbIcon size={18} className="text-gray-400" />
+      <h2 className="text-xl font-bold italic tracking-tight text-gray-800">Database</h2>
+    </div>
+    <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+      <EyeOff size={10} className="text-gray-500" />
+      <span className="text-[8px] font-black uppercase tracking-tighter text-gray-500">Private</span>
+    </div>
+  </div>
+  <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mb-6 ml-7">Your personal history (Only you can see this)</p>
+  
+  <div className="flex flex-wrap gap-3">
+    {beenWith.map(code => (
+      <button 
+        key={code} 
+        onClick={() => setPillToDelete({ code, type: 'database' })} 
+        className="flex items-center gap-2 border border-gray-200 rounded-full pl-3 pr-5 py-2.5 font-bold text-gray-600 bg-gray-50/50 hover:bg-gray-100 transition-all active:scale-95 shadow-sm"
+      >
+        <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.2em'}} />
+        <span className="text-sm">{countryName(code)}</span>
+      </button>
+    ))}
+    
+    <div className="border border-dashed border-gray-300 rounded-full px-5 py-2.5 text-gray-400 font-bold text-sm flex items-center bg-white hover:border-gray-400 transition-colors">
+       <NationalityPicker placeholder="+ add history" onSelect={(c) => addBeenWith(c.cca2)} />
+    </div>
+  </div>
+</section>
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
@@ -215,7 +239,6 @@ async function addWishlist(code: string) {
                   <input placeholder="Height (cm)" type="number" className="w-full bg-transparent border-b border-gray-200 py-3 font-bold outline-none focus:border-black transition-all" value={editForm.height} onChange={e => setEditForm({...editForm, height: e.target.value})} />
                   <input placeholder="Instagram @handle" className="w-full bg-transparent border-b border-gray-200 py-3 font-bold outline-none focus:border-black transition-all" value={editForm.social_handle} onChange={e => setEditForm({...editForm, social_handle: e.target.value})} />
                   
-                  {/* EDIT INTRODUCTION */}
                   <div className="pt-4">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Introduction</label>
                     <textarea 
@@ -255,7 +278,6 @@ async function addWishlist(code: string) {
                   </p>
                 </div>
 
-                {/* VISUALIZZAZIONE INTRODUCTION */}
                 {profile.introduction && (
                   <div className="border border-gray-100 rounded-[2.5rem] p-8 bg-white shadow-sm animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-2 mb-3">
@@ -321,7 +343,6 @@ async function addWishlist(code: string) {
           </div>
         )}
 
-        {/* MODAL CANCELLAZIONE (invariato) */}
         {pillToDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/10 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-xs rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 text-center border border-gray-50">

@@ -5,18 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import ReactCountryFlag from 'react-country-flag'
 import { supabase } from '@/lib/supabaseClient'
 import countries from 'world-countries'
-import { MapPin, Instagram, ChevronLeft, Quote, User, Compass, Ruler } from 'lucide-react'
+import { MapPin, Instagram, ChevronLeft, Quote, User, Compass, Ruler, Radar } from 'lucide-react'
 
 export default function PublicProfilePage() {
   const { id } = useParams()
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
-  const [beenWith, setBeenWith] = useState<string[]>([])
+  const [radarPills, setRadarPills] = useState<string[]>([]) // Ora carichiamo il Radar
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadPublicData() {
-      // La select('*') caricherà automaticamente anche la nuova colonna introduction
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -25,11 +24,12 @@ export default function PublicProfilePage() {
 
       if (profileData) {
         setProfile(profileData)
-        const { data: been } = await supabase
-          .from('user_nationalities')
+        // CAMBIO LOGICA: Carichiamo la wishlist (Radar) invece del database
+        const { data: wish } = await supabase
+          .from('user_wishlist_nationalities')
           .select('country_code')
           .eq('user_id', id)
-        setBeenWith(been?.map(n => n.country_code) || [])
+        setRadarPills(wish?.map(n => n.country_code) || [])
       }
       setLoading(false)
     }
@@ -50,7 +50,6 @@ export default function PublicProfilePage() {
     <main className="min-h-screen bg-white text-black font-['DM_Sans'] pb-32">
       <div className="max-w-md mx-auto px-6 pt-10">
         
-        {/* BACK BUTTON AGGIORNATO */}
         <button 
           onClick={() => router.push('/explore')}
           className="mb-8 w-12 h-12 flex items-center justify-center bg-white rounded-full border border-gray-100 shadow-sm active:scale-90 transition-all"
@@ -60,7 +59,6 @@ export default function PublicProfilePage() {
 
         <div className="space-y-6">
           
-          {/* CARD NOME / LOCATION */}
           <section className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
             <div className="flex justify-between items-start">
               <div>
@@ -79,7 +77,6 @@ export default function PublicProfilePage() {
             </div>
           </section>
 
-          {/* NUOVO BLOCCO INTRODUCTION */}
           {profile.introduction && (
             <section className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2 mb-3 text-gray-300">
@@ -92,7 +89,6 @@ export default function PublicProfilePage() {
             </section>
           )}
 
-          {/* CARD INFO FISICHE AGGIORNATA CON ICONE */}
           <section className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm grid grid-cols-3 divide-x divide-gray-100">
              <div className="py-5 flex flex-col items-center gap-1">
                 <User size={14} className="text-gray-300 mb-1" />
@@ -108,22 +104,32 @@ export default function PublicProfilePage() {
              </div>
           </section>
 
-          {/* DATABASE */}
-          <section className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 mb-5">Database</h2>
-            <div className="flex flex-wrap gap-3">
-              {beenWith.length > 0 ? beenWith.map(code => (
-                <div key={code} className="flex items-center gap-2 border border-gray-100 px-4 py-2.5 rounded-full bg-white shadow-sm transition-transform hover:scale-105">
-                  <ReactCountryFlag svg countryCode={code} />
-                  <span className="text-[11px] font-bold text-black uppercase tracking-tight">{countryName(code)}</span>
-                </div>
-              )) : (
-                <p className="text-[10px] text-gray-300 italic font-bold">No nationalities collected yet</p>
-              )}
-            </div>
-          </section>
+          {/* SEZIONE RADAR PUBBLICA - STILE COERENTE */}
+<section className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
+  <div className="flex items-center gap-2 mb-5">
+    <Radar size={16} className="text-black" />
+    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Target Radar</h2>
+  </div>
+  
+  <div className="flex flex-wrap gap-3">
+    {radarPills.length > 0 ? radarPills.map(code => (
+      <div 
+        key={code} 
+        className="flex items-center gap-2 border-2 border-dashed border-gray-200 px-4 py-2.5 rounded-full bg-white shadow-sm transition-transform hover:scale-105"
+      >
+        <ReactCountryFlag svg countryCode={code} style={{fontSize: '1.1em'}} />
+        <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">
+          {countryName(code)}
+        </span>
+      </div>
+    )) : (
+      <p className="text-[10px] text-gray-300 italic font-bold px-2">
+        No specific radar targets yet
+      </p>
+    )}
+  </div>
+</section>
 
-          {/* GALLERIA FOTO 2:3 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="aspect-[2/3] rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-md">
               <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Main" />
@@ -139,7 +145,6 @@ export default function PublicProfilePage() {
             )}
           </div>
 
-          {/* BUTTON INSTAGRAM */}
           {profile.social_handle && (
             <div className="pt-6">
               <a 
